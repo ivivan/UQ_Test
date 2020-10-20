@@ -113,7 +113,7 @@ class CustomRunner(Runner):
 if __name__ == '__main__':
     # sample data
 
-    data_path = 'Z:/MoDS/Dabang_Sheng/Data/VIC_ready2use150000.csv'
+    data_path = 'R:/CROPPHEN-Q2067/MoDS/Dabang_Sheng/Data/VIC_ready2use150000.csv'
     df_all = pd.read_csv(data_path)
 
     # pick up only NDVI,and paddocktyp
@@ -181,12 +181,12 @@ if __name__ == '__main__':
     # # model hyperparameters
     INPUT_DIM = 1
     OUTPUT_DIM = 5
-    MODEL_DIM = 128
+    MODEL_DIM = 64
     HID_DIM = 40
     DROPOUT = 0.1
     LR = 0.004  # learning rate
     EPOCHS = 2
-    BATCH_SIZE = 64
+    BATCH_SIZE = 32
     N_CLASSES = 5
     ATTENTION_LAYER = 6
     FF_DIM = 256

@@ -1,6 +1,6 @@
 
 from imblearn.over_sampling import RandomOverSampler
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score,cohen_kappa_score
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
@@ -17,14 +17,14 @@ pd.options.display.width = 0
 
 
 # reproduce
-SEED = 42
+SEED = 15
 
 
 if __name__ == "__main__":
 
     # sample data
 
-    data_path = 'Z:/MoDS/Dabang_Sheng/Data/VIC_ready2use150000.csv'
+    data_path = 'R:/CROPPHEN-Q2067/MoDS/Dabang_Sheng/Data/VIC_ready2use150000.csv'
     df_all = pd.read_csv(data_path)
 
     # pick up only NDVI,and paddocktyp
@@ -61,7 +61,7 @@ if __name__ == "__main__":
 
     # DT
 
-    modelo = RandomForestClassifier(n_estimators=50)
+    modelo = RandomForestClassifier(n_estimators=100)
     modelo_GB = GradientBoostingClassifier()
 
     modelo.fit(X_train_resampled, y_train_resampled)
@@ -70,7 +70,7 @@ if __name__ == "__main__":
 
     target_names = ['Barley', 'Canola', 'Chick Pea', 'Lentils', 'Wheat']
     print(classification_report(y_test, predections, target_names=target_names))
-
+    print('Kappa',cohen_kappa_score(y_test,predections))
 
 
     # X_train_tensor = numpy_to_tensor(
