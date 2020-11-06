@@ -20,13 +20,16 @@ from torch.nn import functional as F
 
 from collections import OrderedDict
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+import geopandas as gpd
+import seaborn as sns
 import os
 import time
 import numpy as np
 import pandas as pd
 np.set_printoptions(threshold=np.inf)
 pd.options.display.width = 0
-
+sns.color_palette("tab10")
 
 # reproduce
 SEED = 15
@@ -133,13 +136,14 @@ if __name__ == "__main__":
     new = df_all.join(df_all2, on='field_id',lsuffix='_left', rsuffix='_right')
 
 
-    new = new[['field_id_left', 'lat','lon','crop']]
-    print(new.shape)
+    df = new[['field_id_left', 'lat','lon','crop']].copy()
+    df = df.replace({'crop': {'Chick Pea': 'Chickpea'}})
+    print(df.head())
 
-    all_point = new.plot.scatter(x='lon', 
-                   y='lat',
-                   color='blue')
+    sns.scatterplot(x="lon", y="lat", data=df, hue="crop")
     plt.show()
+
+
 
     # # VIC 2020 test data
 
