@@ -97,10 +97,9 @@ class LabelSmoothingCrossEntropy(nn.Module):
 
 # self attention with lstm
 class AttentionModel(torch.nn.Module):
-    def __init__(self, batch_size, input_dim, hidden_dim, output_dim, recurrent_layers, dropout_p):
+    def __init__(self, input_dim, hidden_dim, output_dim, recurrent_layers, dropout_p):
         super(AttentionModel, self).__init__()
 
-        self.batch_size = batch_size
         self.output_dim = output_dim
         self.hidden_dim = hidden_dim
         self.input_dim = input_dim
@@ -131,31 +130,21 @@ class AttentionModel(torch.nn.Module):
         self.output_linear = nn.Linear(self.hidden_dim * 2, self.hidden_dim)
         self.label = nn.Linear(hidden_dim*4, output_dim)
 
-    def forward(self, input_sentences, batch_size=None):
+    def forward(self, input_sentences):
 
         input = self.dropout(torch.tanh(self.input_embeded(input_sentences)))
         input = input.permute(1, 0, 2)
-        if batch_size is None:
-            h_0 = Variable(torch.zeros(2*self.recurrent_layers,
-                                       self.batch_size, self.hidden_dim).to(device))
-            c_0 = Variable(torch.zeros(2*self.recurrent_layers,
-                                       self.batch_size, self.hidden_dim).to(device))
-        else:
-            h_0 = Variable(torch.zeros(2*self.recurrent_layers,
-                                       batch_size, self.hidden_dim).to(device))
-            c_0 = Variable(torch.zeros(2*self.recurrent_layers,
-                                       batch_size, self.hidden_dim).to(device))
 
         self.lstm.flatten_parameters()
 
         output, (final_hidden_state, final_cell_state) = self.lstm(
-            input, (h_0, c_0))
+            input)
         output = output.permute(1, 0, 2)
 
         attn_ene = self.self_attention(output)
 
         attn_ene = attn_ene.view(
-            self.batch_size, -1)
+            output.shape[0], -1)
         
         # scale
         attn_ene.mul_(self.scale)
@@ -173,8 +162,6 @@ class AttentionModel(torch.nn.Module):
 
 
 if __name__ == "__main__":
-
-
     # model hyperparameters
     INPUT_DIM = 1
     OUTPUT_DIM = 7
@@ -188,25 +175,31 @@ if __name__ == "__main__":
     num_gpu = 2
     # datadir = "R:/CROPPHEN-Q2067"  #local
     datadir = "/afm02/Q2/Q2067"  #hpc
-    logdir = "/clusterdata/uqyzha77/Log/vic/big/"
+    logdir = "/afm02/Q2/Q2067/Data/DeepLearningTestData/HPC/Log/vic/large/"
 
 
     # generate dataloader
-    # data_path_x_train = f'{datadir}/Data/DeepLearningTestData/New_NDVI_test/Test_small/train_x_small.csv'
-    # data_path_y_train = f'{datadir}/Data/DeepLearningTestData/New_NDVI_test/Test_small/train_y_small.csv'
-    # data_path_x_test = f'{datadir}/Data/DeepLearningTestData/New_NDVI_test/Test_small/test_x_small.csv'
-    # data_path_y_test = f'{datadir}/Data/DeepLearningTestData/New_NDVI_test/Test_small/test_y_small.csv'
+    # data_path_x_train = f'{datadir}/Data/DeepLearningTestData/MOREE/small_dataset/train_x_small.csv'
+    # data_path_y_train = f'{datadir}/Data/DeepLearningTestData/MOREE/small_dataset/train_y_small.csv'
+    # data_path_x_test = f'{datadir}/Data/DeepLearningTestData/MOREE/small_dataset/test_x_small.csv'
+    # data_path_y_test = f'{datadir}/Data/DeepLearningTestData/MOREE/small_dataset/test_y_small.csv'
 
-    data_path_x_train = f'{datadir}/Data/DeepLearningTestData/New_NDVI_test/Test_big/train_x_big.csv'
-    data_path_y_train = f'{datadir}/Data/DeepLearningTestData/New_NDVI_test/Test_big/train_y_big.csv'
-    data_path_x_test = f'{datadir}/Data/DeepLearningTestData/New_NDVI_test/Test_big/test_x_big.csv'
-    data_path_y_test = f'{datadir}/Data/DeepLearningTestData/New_NDVI_test/Test_big/test_y_big.csv'
+    data_path_x_train = f'{datadir}/Data/DeepLearningTestData/MOREE/large_dataset/train_x_large.csv'
+    data_path_y_train = f'{datadir}/Data/DeepLearningTestData/MOREE/large_dataset/train_y_large.csv'
+    data_path_x_test = f'{datadir}/Data/DeepLearningTestData/MOREE/large_dataset/test_x_large.csv'
+    data_path_y_test = f'{datadir}/Data/DeepLearningTestData/MOREE/large_dataset/test_y_large.csv'
     
 
     df_x_train = pd.read_csv(data_path_x_train)
     df_y_train = pd.read_csv(data_path_y_train, dtype=np.int32)
     df_x_test = pd.read_csv(data_path_x_test)
     df_y_test = pd.read_csv(data_path_y_test, dtype=np.int32)
+
+
+
+    df_x_train = pd.concat([df_x_train, df_x_test], axis=0)
+    df_y_train = pd.concat([df_y_train, df_y_test], axis=0)
+
 
     train_X, test_X, train_y, test_y = df_x_train.to_numpy(
     ), df_x_test.to_numpy(), df_y_train.to_numpy(), df_y_test.to_numpy()
@@ -255,7 +248,7 @@ if __name__ == "__main__":
     loaders["valid"] = valid_dl
 
     # model
-    model = AttentionModel(BATCH_SIZE//num_gpu, INPUT_DIM, HID_DIM,
+    model = AttentionModel(INPUT_DIM, HID_DIM,
                         OUTPUT_DIM, RECURRENT_Layers, DROPOUT).to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)

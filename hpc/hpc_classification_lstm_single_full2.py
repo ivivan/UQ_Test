@@ -32,13 +32,13 @@ pd.options.display.width = 0
 SEED = 15
 set_global_seed(SEED)
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device = torch.device("cpu")
+device = torch.device("cuda")
 
 # determine the supported device
 
 
 def get_device():
-    device = torch.device('cpu')  # don't have GPU
+    device = torch.device('cuda')  # don't have GPU
     return device
 
 
@@ -104,10 +104,9 @@ class LabelSmoothingCrossEntropy(nn.Module):
 
 # self attention with lstm
 class AttentionModel(torch.nn.Module):
-    def __init__(self, batch_size, input_dim, hidden_dim, output_dim, recurrent_layers, dropout_p):
+    def __init__(self, input_dim, hidden_dim, output_dim, recurrent_layers, dropout_p):
         super(AttentionModel, self).__init__()
 
-        self.batch_size = batch_size
         self.output_dim = output_dim
         self.hidden_dim = hidden_dim
         self.input_dim = input_dim
@@ -138,31 +137,21 @@ class AttentionModel(torch.nn.Module):
         self.output_linear = nn.Linear(self.hidden_dim * 2, self.hidden_dim)
         self.label = nn.Linear(hidden_dim*4, output_dim)
 
-    def forward(self, input_sentences, batch_size=None):
+    def forward(self, input_sentences):
 
         input = self.dropout(torch.tanh(self.input_embeded(input_sentences)))
         input = input.permute(1, 0, 2)
-        if batch_size is None:
-            h_0 = Variable(torch.zeros(2*self.recurrent_layers,
-                                       self.batch_size, self.hidden_dim).to(device))
-            c_0 = Variable(torch.zeros(2*self.recurrent_layers,
-                                       self.batch_size, self.hidden_dim).to(device))
-        else:
-            h_0 = Variable(torch.zeros(2*self.recurrent_layers,
-                                       batch_size, self.hidden_dim).to(device))
-            c_0 = Variable(torch.zeros(2*self.recurrent_layers,
-                                       batch_size, self.hidden_dim).to(device))
 
         self.lstm.flatten_parameters()
 
         output, (final_hidden_state, final_cell_state) = self.lstm(
-            input, (h_0, c_0))
+            input)
         output = output.permute(1, 0, 2)
 
         attn_ene = self.self_attention(output)
 
         attn_ene = attn_ene.view(
-            self.batch_size, -1)
+            output.shape[0], -1)
         
         # scale
         attn_ene.mul_(self.scale)
@@ -196,20 +185,19 @@ if __name__ == "__main__":
     num_gpu = 1
     datadir = "R:/CROPPHEN-Q2067"  #local
     # datadir = "/afm02/Q2/Q2067"  #hpc
-    logdir = "/clusterdata/uqyzha77/Log/vic/big/full"
+    # logdir = "/clusterdata/uqyzha77/Log/vic/big/full"
 
 
     # generate dataloader
-    # data_path_x_train = f'{datadir}/Data/DeepLearningTestData/New_NDVI_test/Test_small/train_x_small.csv'
-    # data_path_y_train = f'{datadir}/Data/DeepLearningTestData/New_NDVI_test/Test_small/train_y_small.csv'
-    # data_path_x_test = f'{datadir}/Data/DeepLearningTestData/New_NDVI_test/Test_small/test_x_small.csv'
-    # data_path_y_test = f'{datadir}/Data/DeepLearningTestData/New_NDVI_test/Test_small/test_y_small.csv'
+    data_path_x_train = f'{datadir}/Data/DeepLearningTestData/MOREE/small_dataset/train_x_small.csv'
+    data_path_y_train = f'{datadir}/Data/DeepLearningTestData/MOREE/small_dataset/train_y_small.csv'
+    data_path_x_test = f'{datadir}/Data/DeepLearningTestData/MOREE/small_dataset/test_x_small.csv'
+    data_path_y_test = f'{datadir}/Data/DeepLearningTestData/MOREE/small_dataset/test_y_small.csv'
 
-
-    data_path_x_train = f'{datadir}/Data/DeepLearningTestData/New_NDVI_test/Test_big/train_x_big.csv'
-    data_path_y_train = f'{datadir}/Data/DeepLearningTestData/New_NDVI_test/Test_big/train_y_big.csv'
-    data_path_x_test = f'{datadir}/Data/DeepLearningTestData/New_NDVI_test/Test_big/test_x_big.csv'
-    data_path_y_test = f'{datadir}/Data/DeepLearningTestData/New_NDVI_test/Test_big/test_y_big.csv'
+    # data_path_x_train = f'{datadir}/Data/DeepLearningTestData/MOREE/large_dataset/train_x_large.csv'
+    # data_path_y_train = f'{datadir}/Data/DeepLearningTestData/MOREE/large_dataset/train_y_large.csv'
+    # data_path_x_test = f'{datadir}/Data/DeepLearningTestData/MOREE/large_dataset/test_x_large.csv'
+    # data_path_y_test = f'{datadir}/Data/DeepLearningTestData/MOREE/large_dataset/test_y_large.csv'
 
     df_x_train = pd.read_csv(data_path_x_train)
     df_y_train = pd.read_csv(data_path_y_train, dtype=np.int32)
@@ -268,7 +256,7 @@ if __name__ == "__main__":
     loaders["valid"] = valid_dl
 
     # model
-    model = AttentionModel(BATCH_SIZE//num_gpu, INPUT_DIM, HID_DIM,
+    model = AttentionModel(INPUT_DIM, HID_DIM,
                         OUTPUT_DIM, RECURRENT_Layers, DROPOUT).to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
@@ -295,22 +283,22 @@ if __name__ == "__main__":
 
     # model inference
 
-    # load_device = torch.device('cpu')
+    load_device = torch.device('cuda')
 
-    # state = torch.load('hpc/model/best_full_big.pth',map_location=load_device)
-    # model.load_state_dict(state['model_state_dict'])
-    # model.to(load_device)
+    state = torch.load('hpc/model/new/best_small.pth',map_location=load_device)
+    model.load_state_dict(state['model_state_dict'])
+    model.to(load_device)
 
-    # # Export the trained model to ONNX
+    # Export the trained model to ONNX
 
-    # dummy_input = torch.randn(1, input_size, INPUT_DIM,device=load_device) # one black and white 28 x 28 picture will be the input to the model
-    # torch.onnx.export(model, dummy_input, "hpc/model/onnx_big.onnx", input_names=['vi_input'], output_names=['vi_output'])
+    dummy_input = torch.randn(1, input_size, INPUT_DIM,device=load_device) # one black and white 28 x 28 picture will be the input to the model
+    torch.onnx.export(model, dummy_input, "hpc/model/new/onnx_small_gpu.onnx", input_names=['vi_input'], output_names=['vi_output'])
 
-    # dummy_output = model(dummy_input)
-    # print(dummy_output)
+    dummy_output = model(dummy_input)
+    print(dummy_output)
 
 
-    # model_onnx = onnx.load('hpc/model/onnx_small.onnx')
+    # model_onnx = onnx.load('hpc/model/onnx_big_gpu.onnx')
 
     # tf_rep = prepare(model_onnx)
 
@@ -322,54 +310,56 @@ if __name__ == "__main__":
 
 
 
-    test_dl = DataLoader(valid_ds, batch_size=BATCH_SIZE,
-                         shuffle=False, drop_last=True, num_workers=0)
 
-    class_names = ['0', '1', '2', '3', '4','5','6']
+    # # inference
+    # test_dl = DataLoader(valid_ds, batch_size=BATCH_SIZE,
+    #                      shuffle=False, drop_last=True, num_workers=0)
 
-    test_truth = []
-    for i in test_dl:
-        test_truth.append(i[1].cpu().numpy().tolist())
+    # class_names = ['0', '1', '2', '3', '4','5','6']
 
-    test_truth = [item for sublist in test_truth for item in sublist]
+    # test_truth = []
+    # for i in test_dl:
+    #     test_truth.append(i[1].cpu().numpy().tolist())
+
+    # test_truth = [item for sublist in test_truth for item in sublist]
 
 
-    predictions = np.vstack(list(map(
-        lambda x: x["logits"].cpu().numpy(),
-        runner.predict_loader(model=model,
-                              loader=test_dl, resume=f"hpc/model/best_full_big.pth")
-    )))
+    # predictions = np.vstack(list(map(
+    #     lambda x: x["logits"].cpu().numpy(),
+    #     runner.predict_loader(model=model,
+    #                           loader=test_dl, resume=f"hpc/model/new/best_large.pth")
+    # )))
 
-    probabilities = []
-    pred_labels = []
-    true_labels = []
-    pred_classes = []
-    true_classes = []
-    for i, (truth, logits) in enumerate(zip(test_truth, predictions)):
-        probability = torch.softmax(torch.from_numpy(logits), dim=0)
-        pred_label = probability.argmax().item()
-        probabilities.append(probability.cpu().numpy())
-        pred_labels.append(pred_label)
-        true_labels.append(truth)
-        pred_classes.append(class_names[pred_label])
-        true_classes.append(class_names[truth])
+    # probabilities = []
+    # pred_labels = []
+    # true_labels = []
+    # pred_classes = []
+    # true_classes = []
+    # for i, (truth, logits) in enumerate(zip(test_truth, predictions)):
+    #     probability = torch.softmax(torch.from_numpy(logits), dim=0)
+    #     pred_label = probability.argmax().item()
+    #     probabilities.append(probability.cpu().numpy())
+    #     pred_labels.append(pred_label)
+    #     true_labels.append(truth)
+    #     pred_classes.append(class_names[pred_label])
+    #     true_classes.append(class_names[truth])
 
-    probabilities_df = pd.DataFrame(probabilities)
-    true_labels_df = pd.DataFrame(true_labels)
-    pred_labels_df = pd.DataFrame(pred_labels)
-    pred_classes_df = pd.DataFrame(pred_classes)
-    true_classes_df = pd.DataFrame(true_classes)
+    # probabilities_df = pd.DataFrame(probabilities)
+    # true_labels_df = pd.DataFrame(true_labels)
+    # pred_labels_df = pd.DataFrame(pred_labels)
+    # pred_classes_df = pd.DataFrame(pred_classes)
+    # true_classes_df = pd.DataFrame(true_classes)
 
-    results = pd.concat([probabilities_df, pred_labels_df, true_labels_df,
-                         pred_classes_df, true_classes_df], axis=1)
-    # results.columns = ['Prob_Barley', 'Prob_Canola', 'Prob_Chickpea', 'Prob_Lentils',
-    #                    'Prob_Wheat', 'Pred_label', 'True_label', 'Pred_class', 'True_class']
+    # results = pd.concat([probabilities_df, pred_labels_df, true_labels_df,
+    #                      pred_classes_df, true_classes_df], axis=1)
+    # # results.columns = ['Prob_Barley', 'Prob_Canola', 'Prob_Chickpea', 'Prob_Lentils',
+    # #                    'Prob_Wheat', 'Pred_label', 'True_label', 'Pred_class', 'True_class']
 
-    # classification report
+    # # classification report
 
-    y_true = pred_labels
-    y_pred = true_labels
-    target_names = ['0', '1', '2', '3', '4','5','6']
-    print(classification_report(y_true, y_pred, target_names=target_names,zero_division=0))
-    print(f1_score(y_true, y_pred, labels=np.unique(y_pred),average='macro'))
-    print('Kappa',cohen_kappa_score
+    # y_true = pred_labels
+    # y_pred = true_labels
+    # target_names = ['0', '1', '2', '3', '4','5','6']
+    # print(classification_report(y_true, y_pred, target_names=target_names,zero_division=0))
+    # print(f1_score(y_true, y_pred, labels=np.unique(y_pred),average='macro'))
+    # print('Kappa',cohen_kappa_score(y_true,y_pred))

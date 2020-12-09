@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=Pytorch-Moree
-#SBATCH --output=/clusterdata/uqyzha77/Output/vic/Pytorch-Moree-%j.out
-#SBATCH --error=/clusterdata/uqyzha77/Log/vic/big/full/Pytorch-Moree-%j.err
+#SBATCH --job-name=Pytorch-MOREE-LARGE
+#SBATCH --output=/afm02/Q2/Q2067/Data/DeepLearningTestData/HPC/Output/vic/Pytorch-VIC-%j.out
+#SBATCH --error=/afm02/Q2/Q2067/Data/DeepLearningTestData/HPC/Log/vic/large/Pytorch-VIC-%j.err
 #SBATCH --mail-user=yifan.zhang@uq.edu.au
 #SBATCH --mail-type=ALL
 
@@ -19,4 +19,4 @@ module load mvapich2-gnu4/2.3
 # source /opt/ohpc/pub/apps/anaconda2020/etc/profile.d/conda.sh
 # conda activate /clusterdata/uqyzha77/.conda/envs/pytorch
 
-python /clusterdata/uqyzha77/Project/vic/hpc_classification_lstm_single_full2.py
+python /afm02/Q2/Q2067/Data/DeepLearningTestData/HPC/Project/moree/hpc_classification_lstm_single.py

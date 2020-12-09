@@ -154,79 +154,85 @@ model_onnx = onnx.load('hpc/model/onnx_big.onnx')
 
 tf_rep = prepare(model_onnx)
 
-X_test = np.expand_dims(X_test.astype(np.float32), axis=(2))
-
-
-# input = np.expand_dims(X_test[5000].astype(np.float32), axis=(0,2))
-# print(input.shape)
-
-# output = tf_rep.run(input)
-# print('The digit is classified as ', np.argmax(output))
-
-# no = 0
-# predictions = []
-# for i in X_test:
-#     input = np.expand_dims(i.astype(np.float32), axis=(0,2))
-#     output = np.argmax(tf_rep.run(input))
-#     predictions.append(output)
-#     print(no)
-#     no += 1
-
-
-
-iter_per_epoch = int(np.ceil(X_test.shape[0] * 1. / BATCH_SIZE))
-# perm_idx = np.random.permutation(X_test.shape[0])
-perm_idx = np.arange(X_test.shape[0])
-
-predictions = []
-
-for t_i in range(0, X_test.shape[0], BATCH_SIZE):
-    batch_idx = perm_idx[t_i:(t_i + BATCH_SIZE)]
-
-    x_test_batch = np.take(X_test, batch_idx, axis=0)
-    y_test_batch = np.take(y_test, batch_idx, axis=0)
-
-    temp = tf_rep.run(x_test_batch)
-    output = np.argmax(temp[0],axis=1)
-    predictions.append(output.tolist())
-    
-predictions = [item for sublist in predictions for item in sublist]
-
-
-
-
-
-class_names = ['0', '1', '2', '3', '4','5','6']
-pred_labels = []
-true_labels = []
-pred_classes = []
-true_classes = []
-
-
-
-for i, (truth, preds) in enumerate(zip(y_test, predictions)):
-    pred_labels.append(preds)
-    true_labels.append(truth)
-    pred_classes.append(class_names[preds])
-    true_classes.append(class_names[truth])
-
-
-
-# classification report
-
-y_true = pred_labels
-y_pred = true_labels
-target_names = ['0', '1', '2', '3', '4','5','6']
-print(classification_report(y_true, y_pred, target_names=target_names,zero_division=0))
-print(f1_score(y_true, y_pred, labels=np.unique(y_pred),average='macro'))
-print('Kappa',cohen_kappa_score(y_true,y_pred))
-
-
-
-
 
 # # Export model as .pb file
-# tf_rep.export_graph('./models/model_simple.pb')
+# tf_rep.export_graph('hpc/model/tf_big.pb')
+
+
+
+
+# X_test = np.expand_dims(X_test.astype(np.float32), axis=(2))
+
+
+# # input = np.expand_dims(X_test[5000].astype(np.float32), axis=(0,2))
+# # print(input.shape)
+
+# # output = tf_rep.run(input)
+# # print('The digit is classified as ', np.argmax(output))
+
+# # no = 0
+# # predictions = []
+# # for i in X_test:
+# #     input = np.expand_dims(i.astype(np.float32), axis=(0,2))
+# #     output = np.argmax(tf_rep.run(input))
+# #     predictions.append(output)
+# #     print(no)
+# #     no += 1
+
+
+
+# iter_per_epoch = int(np.ceil(X_test.shape[0] * 1. / BATCH_SIZE))
+# # perm_idx = np.random.permutation(X_test.shape[0])
+# perm_idx = np.arange(X_test.shape[0])
+
+# predictions = []
+
+# for t_i in range(0, X_test.shape[0], BATCH_SIZE):
+#     batch_idx = perm_idx[t_i:(t_i + BATCH_SIZE)]
+
+#     x_test_batch = np.take(X_test, batch_idx, axis=0)
+#     y_test_batch = np.take(y_test, batch_idx, axis=0)
+
+#     temp = tf_rep.run(x_test_batch)
+#     output = np.argmax(temp[0],axis=1)
+#     predictions.append(output.tolist())
+    
+# predictions = [item for sublist in predictions for item in sublist]
+
+
+
+
+
+# class_names = ['0', '1', '2', '3', '4','5','6']
+# pred_labels = []
+# true_labels = []
+# pred_classes = []
+# true_classes = []
+
+
+
+# for i, (truth, preds) in enumerate(zip(y_test, predictions)):
+#     pred_labels.append(preds)
+#     true_labels.append(truth)
+#     pred_classes.append(class_names[preds])
+#     true_classes.append(class_names[truth])
+
+
+
+# # classification report
+
+# y_true = pred_labels
+# y_pred = true_labels
+# target_names = ['0', '1', '2', '3', '4','5','6']
+# print(classification_report(y_true, y_pred, target_names=target_names,zero_division=0))
+# print(f1_score(y_true, y_pred, labels=np.unique(y_pred),average='macro'))
+# print('Kappa',cohen_kappa_score(y_true,y_pred))
+
+
+
+
+
+
 
 
 
