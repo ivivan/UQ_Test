@@ -55,56 +55,55 @@ def data_together(filepath):
 if __name__ == "__main__":
     # DataLoader definition
     # model hyperparameters
-    INPUT_DIM = 1
-    OUTPUT_DIM = 5
-    HID_DIM = 256
-    DROPOUT = 0.2
-    RECURRENT_Layers = 2
-    LR = 0.004  # learning rate
-    EPOCHS = 400
-    BATCH_SIZE = 128
-    num_classes = 5
-    num_gpu = 1
+
     datadir = "R:/CROPPHEN-Q2067"  #local
     # datadir = "/afm02/Q2/Q2067"  #hpc
     # logdir = "/clusterdata/uqyzha77/Log/vic/winter/" # hpc
     logdir = "./vic_evi/" # local
 
     ##### vic data
-    folder_path = f'{datadir}/Data/DeepLearningTestData/VIC_EVI/2019_cleaned/'
+    folder_path = f'{datadir}/Data/DeepLearningTestData/VIC_EVI/2020_further_cleaned/'
     alldata, allpaths = data_together(folder_path)
 
     vic2018 = pd.concat(alldata)
 
     print(vic2018.shape)
-
+    ############## for 2018 2019 ##############
     # vic2018['field_id'] = vic2018['field_id'].str.slice(1,-1).str.split('_').str[1]
-    vic2018['field_id'] = vic2018['field_id'].str.split('_').str[1]
+    # vic2018['field_id'] = vic2018['field_id'].str.split('_').str[1]
+    vic2018.drop_duplicates(subset=['pixelID'],inplace=True)
     vic2018.dropna(inplace=True)
 
+    print(vic2018.shape)
+
+    print(vic2018['pixelID'].nunique())
+
+    print(vic2018[vic2018.isnull().any(axis=1)])
+
+
     #### join geo info
-    geo_path = f'{datadir}/Data/DeepLearningTestData/VIC_EVI/2019_lat_lon/VIC_latlon_2019.txt'
+    geo_path = f'{datadir}/Data/DeepLearningTestData/VIC_EVI/2020_lat_lon/VIC_latlon_2020.txt'
     geo_df = pd.read_csv(geo_path, sep=',')
 
-    print(vic2018.head())
-    print(vic2018.tail())
-    print(geo_df.head())
+    # print(vic2018.head())
+    # print(vic2018.tail())
+    # print(geo_df.head())
+
+    print(geo_df['pixelID'].nunique())
+
 
     combined = vic2018.merge(geo_df, on='pixelID')
 
     print(combined.head())
+    print(combined.shape)
+    
 
-    labels = combined.iloc[:,1].copy()
-
-    # print(vic2018[vic2018.isnull().any(axis=1)])
-
-    columns_name = list(range(0,55))
-    df2 = pd.DataFrame(combined['5d_EVI_gpr'].str.slice(1,-1).str.split(',').values.tolist(),columns=columns_name,dtype=float)
-    X = df2
-    y = labels
+    # nan_rows = combined[combined.isnull().T.any()]
+    # print(nan_rows)
+ 
     df_geo = combined[['pixelID','lat','lon']]
 
-    df_geo.to_csv(f"{logdir}/data/all_2019_geo.csv", index=False)
+    df_geo.to_csv(f"{logdir}/data/all_2020_geo.csv", index=False)
 
 
 

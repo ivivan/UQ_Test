@@ -179,7 +179,7 @@ class AttentionModel(torch.nn.Module):
 if __name__ == "__main__":
     # DataLoader definition
     # model hyperparameters
-    INPUT_DIM = 1
+    INPUT_DIM = 3
     OUTPUT_DIM = 5
     HID_DIM = 256
     DROPOUT = 0.2
@@ -187,27 +187,38 @@ if __name__ == "__main__":
     LR = 0.004  # learning rate
     EPOCHS = 400
     BATCH_SIZE = 128
-    num_classes = 5
+    NUM_CLASSES = 5
     num_gpu = 1
-    datadir = "R:/CROPPHEN-Q2067"  #local
-    # datadir = "/afm02/Q2/Q2067"  #hpc
-    # logdir = "/clusterdata/uqyzha77/Log/vic/winter/" # hpc
-    logdir = "./vic_evi/" # local
+    # datadir = "./vic_evi"  #local
+    datadir = "/afm02/Q2/Q2067/Data/DeepLearningTestData/VIC_EVI"  #hpc
+    logdir = "/afm02/Q2/Q2067/Data/DeepLearningTestData/HPC/Log/vic/1819" # hpc
+    # logdir = "./vic_evi/" # local
 
     ## EVI
-    x_path = './vic_evi/data/all_2018_x.csv'
-    y_path = './vic_evi/data/all_2018_y.csv'
-    x_2019_path = './vic_evi/data/all_2019_x.csv'
-    y_2019_path = './vic_evi/data/all_2019_y.csv'
+    x_path = f'{datadir}/data/new/all_2018_x.csv'
+    y_path = f'{datadir}/data/new/all_2018_y.csv'
+    x_2019_path = f'{datadir}/data/new/all_2019_x.csv'
+    y_2019_path = f'{datadir}/data/new/all_2019_y.csv'
+    x_2020_path = f'{datadir}/data/new/all_2020_x.csv'
+    y_2020_path = f'{datadir}/data/new/all_2020_y.csv'
+
+
 
     X = pd.read_csv(x_path,header=0)
     y = pd.read_csv(y_path,header=0)
     X_2019 = pd.read_csv(x_2019_path,header=0)
     y_2019 = pd.read_csv(y_2019_path,header=0)
-    X_1819 = pd.concat([X,X_2019])
-    y_1819 = pd.concat([y,y_2019])
+    X_2020 = pd.read_csv(x_2020_path,header=0)
+    y_2020 = pd.read_csv(y_2020_path,header=0)
 
+    X_1819 = pd.concat([X,X_2019,X_2020])
+    y_1819 = pd.concat([y,y_2019,y_2020])
 
+ 
+    # remove below 0
+    mask = (X_1819 >= 0).all(axis=1)
+    X_1819 = X_1819[mask]
+    y_1819 = y_1819[mask]
 
     le = LabelEncoder()
     le.fit(y_1819)
@@ -215,37 +226,31 @@ if __name__ == "__main__":
     class_names = le.classes_
     y_1819 = le.transform(y_1819)
 
-    # # check sample no.
-    # unique_elements, counts_elements = np.unique(y_1819, return_counts=True)
-    # print("Frequency of unique values of the said array:")
-    # print(np.asarray((unique_elements, counts_elements)))
-
 
     ## DegreeDays
-    y_DegreeD_path_18 = './vic_evi/data/all_2018_y_accumulatedD.csv'
-    y_DegreeD_path_19 = './vic_evi/data/all_2019_y_accumulatedD.csv'
+    y_DegreeD_path_18 = f'{datadir}/data/new/all_2018_y_accumulatedD.csv'
+    y_DegreeD_path_19 = f'{datadir}/data/new/all_2019_y_accumulatedD.csv'
+    y_DegreeD_path_20 = f'{datadir}/data/new/all_2020_y_accumulatedD.csv'
 
 
     y_DegreeD_18 = pd.read_csv(y_DegreeD_path_18,header=0)
     y_DegreeD_19 = pd.read_csv(y_DegreeD_path_19,header=0)
-    y_DegreeD_1819 = pd.concat([y_DegreeD_18,y_DegreeD_19])
+    y_DegreeD_20 = pd.read_csv(y_DegreeD_path_20,header=0)
+    y_DegreeD_1819 = pd.concat([y_DegreeD_18,y_DegreeD_19,y_DegreeD_20])
 
-
+    y_DegreeD_1819 = y_DegreeD_1819[mask]
     ## Accumulated Rain
-    y_Rain_path_18 = './vic_evi/data/all_2018_y_accumulated_rain_final.csv'
-    y_Rain_path_19 = './vic_evi/data/all_2019_y_accumulated_rain_final.csv'
+    y_Rain_path_18 = f'{datadir}/data/new/all_2018_y_accumulated_rain_final.csv'
+    y_Rain_path_19 = f'{datadir}/data/new/all_2019_y_accumulated_rain_final.csv'
+    y_Rain_path_20 = f'{datadir}/data/new/all_2020_y_accumulated_rain_final.csv'
 
 
     y_Rain_18 = pd.read_csv(y_Rain_path_18,header=0)
     y_Rain_19 = pd.read_csv(y_Rain_path_19,header=0)
-    y_Rain_1819 = pd.concat([y_Rain_18,y_Rain_19])
+    y_Rain_20 = pd.read_csv(y_Rain_path_20,header=0)
+    y_Rain_1819 = pd.concat([y_Rain_18,y_Rain_19,y_Rain_20])
 
-
-    print(X_1819.shape)
-    print(y_1819.shape)
-    print(y_DegreeD_1819.shape)
-    print(y_Rain_1819.shape)    
-
+    y_Rain_1819 = y_Rain_1819[mask]
 
 
     # split for evi, degreeday and rain, seperately
@@ -333,11 +338,25 @@ if __name__ == "__main__":
     All_X_train = torch.cat((EVI_train_tensor, DD_train_tensor, Rain_train_tensor), 2)
     All_X_test = torch.cat((EVI_test_tensor, DD_test_tensor, Rain_test_tensor), 2)
 
-    # All_X_train = EVI_test_tensor
+    # All_X_train = EVI_train_tensor
     # All_X_test = EVI_test_tensor
 
-    print('All_X_train:{}'.format(All_X_train.shape))
-    print('All_X_test:{}'.format(All_X_test.shape))
+    # All_X_train = torch.cat((EVI_train_tensor, Rain_train_tensor), 2)
+    # All_X_test = torch.cat((EVI_test_tensor, Rain_test_tensor), 2)
+
+    # print('All_X_train:{}'.format(All_X_train.shape))
+    # print('All_X_test:{}'.format(All_X_test.shape))
+
+    ########### Early Classification ###############
+
+    ### 456, 18####
+    ### 456789  37#####
+
+    All_X_train = All_X_train[:,:,:]
+    All_X_test = All_X_test[:,:,:]
+    
+    # print('All_X_train:{}'.format(All_X_train.shape))
+    # print('All_X_test:{}'.format(All_X_test.shape))
 
 
 
@@ -355,96 +374,34 @@ if __name__ == "__main__":
     loaders["train"] = train_dl
     loaders["valid"] = valid_dl
 
-    # # model, criterion, optimizer, scheduler
+    # model, criterion, optimizer, scheduler
 
-    # model = AttentionModel(BATCH_SIZE//num_gpu, INPUT_DIM, HID_DIM,
-    #                        OUTPUT_DIM, RECURRENT_Layers, DROPOUT).to(device)
+    model = AttentionModel(INPUT_DIM, HID_DIM,
+                           OUTPUT_DIM, RECURRENT_Layers, DROPOUT).to(device)
 
-    # # print(model)
-    # # count = count_parameters(model)
-    # # print(count)
+    # print(model)
+    # count = count_parameters(model)
+    # print(count)
 
-    # criterion = torch.nn.CrossEntropyLoss()
-    # optimizer = torch.optim.Adam(model.parameters(), lr=LR)
-    # scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, [30, 60])
+    criterion = torch.nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=LR)
+    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, [30, 60])
 
 
-    # # # model training
-    # runner = SupervisedRunner()
-    # # runner.train(
-    # #     model=model,
-    # #     criterion=criterion,
-    # #     optimizer=optimizer,
-    # #     scheduler=scheduler,
-    # #     verbose=True,
-    # #     timeit=True,
-    # #     loaders=loaders,
-    # #     logdir=logdir,
-    # #     num_epochs=EPOCHS,
-    # #     load_best_on_end=True,
-    # #     callbacks=[AccuracyCallback(num_classes=5, topk_args=[
-    # #         1, 2]), EarlyStoppingCallback(metric='accuracy01', minimize=False, patience=10)]
-    # # )
+    # # model training
+    runner = SupervisedRunner()
+    runner.train(
+        model=model,
+        criterion=criterion,
+        optimizer=optimizer,
+        scheduler=scheduler,
+        verbose=True,
+        timeit=True,
+        loaders=loaders,
+        logdir=logdir,
+        num_epochs=EPOCHS,
+        load_best_on_end=True,
+        callbacks=[AccuracyCallback(num_classes=NUM_CLASSES, topk_args=[
+            1, 2]), EarlyStoppingCallback(metric='accuracy01', minimize=False, patience=10)]
+    )
 
-    # # # model inference
-    # test_dl = DataLoader(valid_ds, batch_size=BATCH_SIZE,
-    #                      shuffle=False, drop_last=True, num_workers=0)
-
-    # test_truth = []
-    # for i in test_dl:
-    #     test_truth.append(i[1].cpu().numpy().tolist())
-
-    # test_truth = [item for sublist in test_truth for item in sublist]
-
-    # predictions = np.vstack(list(map(
-    #     lambda x: x["logits"].cpu().numpy(),
-    #     runner.predict_loader(model=model,
-    #                           loader=test_dl, resume=f"{logdir}/model/vic_198.pth")
-    # )))
-
-    # probabilities = []
-    # pred_labels = []
-    # true_labels = []
-    # pred_classes = []
-    # true_classes = []
-    # for i, (truth, logits) in enumerate(zip(test_truth, predictions)):
-    #     probability = torch.softmax(torch.from_numpy(logits), dim=0)
-    #     pred_label = probability.argmax().item()
-    #     probabilities.append(probability.cpu().numpy())
-    #     pred_labels.append(pred_label)
-    #     true_labels.append(truth)
-    #     pred_classes.append(class_names[pred_label])
-    #     true_classes.append(class_names[truth])
-
-    # probabilities_df = pd.DataFrame(probabilities)
-    # true_labels_df = pd.DataFrame(true_labels)
-    # pred_labels_df = pd.DataFrame(pred_labels)
-    # pred_classes_df = pd.DataFrame(pred_classes)
-    # true_classes_df = pd.DataFrame(true_classes)
-
-    # results = pd.concat([probabilities_df, pred_labels_df, true_labels_df,
-    #                      pred_classes_df, true_classes_df], axis=1)
-    # results.columns = ['Prob_Barley', 'Prob_Canola', 'Prob_Chickpea', 'Prob_Lentils',
-    #                    'Prob_Wheat', 'Pred_label', 'True_label', 'Pred_class', 'True_class']
-
-    # # classification report
-
-    # y_true = pred_labels
-    # y_pred = true_labels
-    # target_names = ['Barley', 'Canola', 'Chickpea', 'Lentils', 'Wheat']
-    # print(classification_report(y_true, y_pred, target_names=target_names))
-    # print('Kappa', cohen_kappa_score(y_true, y_pred))
-
-    # # ### save predictions as csv
-    # # results.to_csv(f"{logdir}/predictions/predictions.csv", index=False)
-
-    #### generate test xy for steamlit
-    # X_test = scaler.inverse_transform(X_test)
-    # df_test = pd.DataFrame(X_test)
-
-    # df_test.iloc[0:5000, :].to_csv(f"{logdir}/data/test_2019_198.csv", index=False)
-
-    # df_test_y = pd.DataFrame(y_test)
-
-    # df_test_y.iloc[0:5000, :].to_csv(
-    #     f"{logdir}/data/test_y_2019_198.csv", index=False)

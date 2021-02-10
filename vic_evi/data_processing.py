@@ -60,34 +60,44 @@ def data_together(filepath):
 if __name__ == "__main__":
     # DataLoader definition
     # model hyperparameters
-    INPUT_DIM = 1
-    OUTPUT_DIM = 5
-    HID_DIM = 256
-    DROPOUT = 0.2
-    RECURRENT_Layers = 2
-    LR = 0.004  # learning rate
-    EPOCHS = 400
-    BATCH_SIZE = 128
-    num_classes = 5
-    num_gpu = 1
+
     datadir = "R:/CROPPHEN-Q2067"  #local
     # datadir = "/afm02/Q2/Q2067"  #hpc
     # logdir = "/clusterdata/uqyzha77/Log/vic/winter/" # hpc
     logdir = "./vic_evi/" # local
 
 
-    folder_path = f'{datadir}/Data/DeepLearningTestData/VIC_EVI/2019_cleaned/'
+    folder_path = f'{datadir}/Data/DeepLearningTestData/VIC_EVI/2020_further_cleaned/'
     alldata, allpaths = data_together(folder_path)
 
-    vic2018 = pd.concat(alldata)
-    print(vic2018.head())
+    # ###### for 2018 2019 #########
+    # vic2018 = pd.concat(alldata)
+    # print(vic2018.shape)
 
-    # vic2018['field_id'] = vic2018['field_id'].str.slice(1,-1).str.split('_').str[1]
-    vic2018['field_id'] = vic2018['field_id'].str.split('_').str[1]
+    # # vic2018['field_id'] = vic2018['field_id'].str.slice(1,-1).str.split('_').str[1]
+    # vic2018['field_id'] = vic2018['field_id'].str.split('_').str[1]
+
+
+    ######### extra for 2020 ###########
+    vic2018 = pd.concat(alldata)
+    
+    vic2018['field_id'] = vic2018['field_id'].str.replace('lentils','Lentils')
+    vic2018['field_id'] = vic2018['field_id'].str.replace('barley','Barley')
+    vic2018['field_id'] = vic2018['field_id'].str.replace('Barley2','Barley 2')
+    
+
+    validation = vic2018[~vic2018['field_id'].str.contains('_')]
+    validation['field_id'] = validation['field_id'].str.slice(2,-1).str.split(' ').str[0]
+    
+
+    datafarming = vic2018[vic2018['field_id'].str.contains('_')]
+    datafarming['field_id'] = datafarming['field_id'].str.slice(1,-1).str.split('_').str[1]
+
+    vic2018 = pd.concat([validation,datafarming])
 
     vic2018.replace('Chick Pea', 'Chickpea',inplace=True)
 
-
+    vic2018.drop_duplicates(subset=['pixelID'],inplace=True)
     vic2018.dropna(inplace=True)
 
     labels = vic2018.iloc[:,1].copy()
@@ -99,13 +109,14 @@ if __name__ == "__main__":
     X = df2
     y = labels
 
+    # X = X.iloc[0:3000,:]
 
-    X.to_csv(f"{logdir}/data/all_2019_x.csv", index=False)
+    X.to_csv(f"{logdir}/data/all_2020_x.csv", index=False)
 
     df_test_y = pd.DataFrame(y)
 
     df_test_y.to_csv(
-        f"{logdir}/data/all_2019_y.csv", index=False)
+        f"{logdir}/data/all_2020_y.csv", index=False)
 
 
 

@@ -36,13 +36,13 @@ if __name__ == "__main__":
 
     ##### read degreeday data ################
 
-    degreeD_path = f'{logdir}/data/all_2019_y_accumulated_rain.csv'
+    degreeD_path = f'{logdir}/data/all_2020_y_accumulated_rain.csv'
     dd_df = pd.read_csv(degreeD_path)
 
 
     ############ sample data #################
-    # start Apr 1, to Dec 31
-    columns_name = list(range(0, 365))
+    # start Apr 1, to Dec 31      2020 366 days
+    columns_name = list(range(0, 366))
     df2 = pd.DataFrame(dd_df['accumulated_rain'].str.slice(
         1, -1).str.split(',').values.tolist(), columns=columns_name, dtype=float)
 
@@ -53,11 +53,12 @@ if __name__ == "__main__":
 
 
     for index, v in zip(range(0, dd_np.shape[0]), dd_np):
-        dd_resample.append(v[90::5])
+        #### 2020 91,  18/19 90 #####
+        dd_resample.append(v[91::5])
 
     final = np.asarray(dd_resample)
     final_df = pd.DataFrame.from_records(final)
 
     final_df.to_csv(
-        f"{logdir}/data/all_2019_y_accumulated_rain_final.csv", index=False)
+        f"{logdir}/data/all_2020_y_accumulated_rain_final.csv", index=False)
 

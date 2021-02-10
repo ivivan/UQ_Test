@@ -30,10 +30,10 @@ def data_together(filepath):
 
     for f in csvs:
         df = pd.read_csv(f)
-        # df = df[90::1]
         daily_rain = df["daily_rain"].to_numpy()
-        max_temp = df["max_temp"][90::1].to_numpy()
-        min_temp = df["min_temp"][90::1].to_numpy()
+        ##### 2020 91, 18/19 90 ########
+        max_temp = df["max_temp"][91::1].to_numpy()
+        min_temp = df["min_temp"][91::1].to_numpy()
         station = df.iloc[0, 0]
 
         d = {'station': station, 'rain':[daily_rain], 'max_temp': [
@@ -45,7 +45,32 @@ def data_together(filepath):
     return dfs, csvs
 
 
+
+
+# read csv files
+def data_csv(filepath):
+    csvs = []
+    dfs = []
+
+    for subdir, dirs, files in os.walk(filepath):
+        for file in files:
+            # print os.path.join(subdir, file)
+            filepath = subdir + os.sep + file
+            if filepath.endswith(".csv"):
+                csvs.append(filepath)
+
+    for f in csvs:
+        dfs.append(pd.read_csv(f))
+
+    return dfs, csvs
+
+
+
+
 def myround(x, prec=2, base=.05):
+    return round(base * round(float(x)/base), prec)
+
+def myround_five(x, prec=0, base=5):
     return round(base * round(float(x)/base), prec)
 
 
@@ -64,6 +89,7 @@ def find_station(target_lat, target_lon, chosen_df):
 
 
 if __name__ == "__main__":
+    datadir = "R:/CROPPHEN-Q2067"  #local
     logdir = "./vic_evi/"  # local
 
     # r = urllib.request.urlopen(
@@ -82,7 +108,7 @@ if __name__ == "__main__":
     vic_df['lon'] = vic_df['lon'].apply(myround)
 
     # check stations
-    geo_path = f'{logdir}/data/all_2018_geo.csv'
+    geo_path = f'{logdir}/data/all_2020_geo.csv'
     geo_df = pd.read_csv(geo_path)
     geo_df['lat'] = geo_df['lat'].apply(myround)
     geo_df['lon'] = geo_df['lon'].apply(myround)
@@ -90,7 +116,6 @@ if __name__ == "__main__":
     unique_geo = geo_df.groupby(['lat', 'lon']).size().reset_index(name='Freq')
 
     print(geo_df.shape)
-    print(geo_df)
 
     ########### field location ###########
     lat_max = geo_df['lat'].max()
@@ -122,24 +147,29 @@ if __name__ == "__main__":
 
     near_stations = final['station'].unique()
 
+    # print('final:{}'.format(final.shape))
+    # print('final:{}'.format(final.head))
+
     ############# download data ################
 
-    # for i in near_stations:
-    #     r = urllib.request.urlopen(
-    #         f'https://www.longpaddock.qld.gov.au/cgi-bin/silo/PatchedPointDataset.php?station={i}&start=20190101&finish=20191231&format=csv&comment=rxn&username=john.doe@xyz.com.au')
-    #     data = r.read()
-    #     with open(f"{logdir}/data/stations_2019/station_id_{i}.csv", "wb") as f:
-    #         f.write(data)
+    for i in near_stations:
+        r = urllib.request.urlopen(
+            f'https://www.longpaddock.qld.gov.au/cgi-bin/silo/PatchedPointDataset.php?station={i}&start=20200101&finish=20201231&format=csv&comment=rxn&username=john.doe@xyz.com.au')
+        data = r.read()
+        with open(f"{logdir}/data/stations_2020/station_id_{i}.csv", "wb") as f:
+            f.write(data)
 
     ############### temp #################
 
-    folder_path = f'{logdir}/data/stations_2018/'
+    folder_path = f'{logdir}/data/stations_2020/'
     alldata, allpaths = data_together(folder_path)
 
     temp_df = pd.concat(alldata)
 
     # temp_df = temp_df[['station','max_temp','min_temp']]
     temp_df.reset_index(drop=True, inplace=True)
+
+    # print(temp_df.head())
 
     ########### all crop for same temp ############
 
@@ -155,47 +185,131 @@ if __name__ == "__main__":
 
     ########### EVI data ##############
 
-    y_path = f'{logdir}/data/all_2018_y.csv'
+    y_path = f'{logdir}/data/all_2020_y.csv'
     y = pd.read_csv(y_path, header=0)
 
     crops = y.to_numpy()
 
     # crops = np.squeeze(crops)
 
+    # print("final")
+    # print(final.head())
+    # print(final.shape)
+    # print(final[final.isnull().any(axis=1)])
+
     final_crop = pd.concat([final, y], axis=1)
+
+    # print('final_crop:{}'.format(final_crop.shape))
+    final_crop.dropna(inplace=True)
+
+    # print('final_crop:{}'.format(final_crop.shape))
+    # print('y:{}'.format(y.shape))
+
     final_all = pd.merge(final_crop, temp_df,  how='left', left_on=[
         'station'], right_on=['station'])
 
 
-    # print(final_all.head())
+    print(final_all.head())
+    print('final_all:{}'.format(final_all.shape))
+    print(final_all[final_all.isnull().any(axis=1)])
+
+
+    ############# add sos soe #############
+
+
+    folder_path = f'{datadir}/Data/DeepLearningTestData/VIC_EVI/2020_curve_params/'
+    alldata, allpaths = data_csv(folder_path)
+
+    all_date = pd.concat(alldata)
+    all_date = all_date[['pixelID','sos','eos']]
+    all_date.drop_duplicates(subset=['pixelID'],inplace=True)
+    all_date.dropna(inplace=True)
+    # all_date.drop_duplicates(subset=['pixelID'],inplace=True)
+
+    print('all_date:{}'.format(all_date.shape))
+    print('final_all:{}'.format(final_all.shape))
+
+    # print(final_all[final_all['pixelID'].duplicated() == True])
+    # print(all_date[all_date['pixelID'].duplicated() == True])
+
+    final_all2 = pd.merge(final_all, all_date,  how='left', left_on=[
+        'pixelID'], right_on=['pixelID'])
+
+    # final_all2 = pd.merge(final_all, all_date,  how='inner', on=[
+    #     'pixelID'])
+
+    # print(list(set(final_all['pixelID']) - set(all_date['pixelID'])))
+
+    # print(final_all2.iloc[1180:])
+    print('final_all2:{}'.format(final_all2.shape))
+    print('final_all2:{}'.format(final_all2.head()))
+
 
     ########### save final degreeday data ##############
 
-    # pixel_crop = final_all['field_id']
-    # crops_degreeD = final_all['degreeDay']
-    # all_degreeD = []
+    pixel_crop = final_all2['field_id']
+    check_pixelID = final_all2['pixelID']
+    crops_degreeD = final_all2['degreeDay']
+    sos = final_all2['sos'].apply(myround_five)
+    eos = final_all2['eos'].apply(myround_five)
+    all_degreeD = []
 
-    # for i in range(0, final_all.shape[0]):
-    #     crop = pixel_crop[i]
-    #     temp = crops_degreeD[i]
-    #     degreeD = temp[crop]
-    #     all_degreeD.append(degreeD)
+    for i in range(0, final_all2.shape[0]):
+    # for i in range(5799, 5800):
+        pixel_id = check_pixelID[i]
+        crop = pixel_crop[i]
+        sos_temp = sos[i]-91
+        eos_temp = eos[i]-91
+        # print('sos_temp:{}'.format(sos_temp))
+        # print('eos_temp:{}'.format(eos_temp))
+        temp = crops_degreeD[i]
+        
+        degreeD = temp[crop]
 
-    # results = pd.DataFrame({'field_id': pixel_crop, 'degreeDay': all_degreeD})
-    # print(results.shape)
 
-    # results.to_csv(
-    #     f"{logdir}/data/all_2018_y_degreeD.csv", index=False)
+
+        degreeD_sub = degreeD[sos_temp:eos_temp]
+        pre_zero = [0] * (sos_temp)
+        pos_zero = [0] * (len(degreeD)-eos_temp)
+        short = pre_zero + degreeD_sub + pos_zero
+
+        # print(len(degreeD[0:sos_temp-1]))
+        # print(len(degreeD[eos_temp:]))
+        # print('sos_temp:{}'.format(sos_temp))
+        # print('2:{}'.format(len(degreeD)-eos_temp))
+        # # print(degreeD)
+        # print(len(degreeD))
+        # print(crop)
+        # print(pixel_id)
+        # print(short)
+        
+
+        all_degreeD.append(short)
+    
+    # print(len(all_degreeD))
+    # print(len(pixel_crop))
+    # print(all_degreeD[1180])
+    # print(len(all_degreeD[1180]))
+    # print(sos[1180])
+    # print(eos[1180])
+
+
+    results = pd.DataFrame({'field_id': pixel_crop, 'degreeDay': all_degreeD})
+
+    print(results.shape)
+
+    results.to_csv(
+        f"{logdir}/data/all_2020_y_degreeD_short.csv", index=False)
 
 
 
     ########### save final accumulated rainfall data ##############
 
-    pixel_crop = final_all['field_id']
-    daily_rain = final_all['rain']
+    pixel_crop = final_all2['field_id']
+    daily_rain = final_all2['rain']
     accumulated_rain = []
 
-    for i in range(0, final_all.shape[0]):
+    for i in range(0, final_all2.shape[0]):
         crop = pixel_crop[i]
         rain_d = daily_rain[i]
         accumulated_rain_d = np.add.accumulate(rain_d)
@@ -205,5 +319,53 @@ if __name__ == "__main__":
     print(results.shape)
     print(results.head())
 
-    # results.to_csv(
-    #     f"{logdir}/data/all_2018_y_accumulated_rain.csv", index=False)
+    results.to_csv(
+        f"{logdir}/data/all_2020_y_accumulated_rain.csv", index=False)
+
+
+
+
+
+
+
+
+
+    # # ########### save final degreeday data ##############
+
+    # # pixel_crop = final_all['field_id']
+    # # crops_degreeD = final_all['degreeDay']
+    # # all_degreeD = []
+
+    # # for i in range(0, final_all.shape[0]):
+    # #     crop = pixel_crop[i]
+    # #     temp = crops_degreeD[i]
+        
+    # #     degreeD = temp[crop]
+    # #     all_degreeD.append(degreeD)
+
+    # # results = pd.DataFrame({'field_id': pixel_crop, 'degreeDay': all_degreeD})
+    # # print(results.shape)
+
+    # # # results.to_csv(
+    # # #     f"{logdir}/data/all_2020_y_degreeD.csv", index=False)
+
+
+
+    # # ########### save final accumulated rainfall data ##############
+
+    # # pixel_crop = final_all['field_id']
+    # # daily_rain = final_all['rain']
+    # # accumulated_rain = []
+
+    # # for i in range(0, final_all.shape[0]):
+    # #     crop = pixel_crop[i]
+    # #     rain_d = daily_rain[i]
+    # #     accumulated_rain_d = np.add.accumulate(rain_d)
+    # #     accumulated_rain.append(accumulated_rain_d.tolist())
+
+    # # results = pd.DataFrame({'field_id': pixel_crop, 'accumulated_rain': accumulated_rain})
+    # # print(results.shape)
+    # # print(results.head())
+
+    # # # results.to_csv(
+    # # #     f"{logdir}/data/all_2020_y_accumulated_rain.csv", index=False)

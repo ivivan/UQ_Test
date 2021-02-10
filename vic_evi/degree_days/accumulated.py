@@ -51,11 +51,11 @@ if __name__ == "__main__":
 
     ##### read degreeday data ################
 
-    degreeD_path = f'{logdir}/data/all_2018_y_degreeD.csv'
+    degreeD_path = f'{logdir}/data/all_2020_y_degreeD_short.csv'
     dd_df = pd.read_csv(degreeD_path)
 
     ############ accumulate data #################
-    # start Apr 1, to Dec 31
+    # start Apr 1, to Dec 31        
     columns_name = list(range(0, 275))
     df2 = pd.DataFrame(dd_df['degreeDay'].str.slice(
         1, -1).str.split(',').values.tolist(), columns=columns_name, dtype=float)
@@ -72,7 +72,8 @@ if __name__ == "__main__":
 
     final = np.asarray(dd_resample)
     final_df = pd.DataFrame.from_records(final)
+    
 
 
     final_df.to_csv(
-        f"{logdir}/data/all_2018_y_accumulatedD.csv", index=False)
+        f"{logdir}/data/all_2020_y_accumulatedD_short.csv", index=False)
