@@ -14,7 +14,6 @@ from torch.utils.data import Dataset as BaseDataset
 from torch.utils.data import DataLoader, TensorDataset
 from torch.nn import functional as F
 from torch.autograd import Variable
-from torch.nn import functional as F
 import torchvision
 
 from collections import OrderedDict
@@ -179,7 +178,7 @@ class AttentionModel(torch.nn.Module):
 if __name__ == "__main__":
     # DataLoader definition
     # model hyperparameters
-    INPUT_DIM = 3
+    INPUT_DIM = 2
     OUTPUT_DIM = 5
     HID_DIM = 256
     DROPOUT = 0.2
@@ -189,8 +188,8 @@ if __name__ == "__main__":
     BATCH_SIZE = 128
     NUM_CLASSES = 5
     num_gpu = 1
-    # datadir = "./vic_evi"  #local
-    datadir = "/afm02/Q2/Q2067/Data/DeepLearningTestData/VIC_EVI"  #hpc
+    datadir = "./vic_evi"  #local
+    # datadir = "/afm02/Q2/Q2067/Data/DeepLearningTestData/VIC_EVI"  #hpc
     logdir = "/afm02/Q2/Q2067/Data/DeepLearningTestData/HPC/Log/vic/1819" # hpc
     # logdir = "./vic_evi/" # local
 
@@ -220,6 +219,8 @@ if __name__ == "__main__":
     X_1819 = X_1819[mask]
     y_1819 = y_1819[mask]
 
+
+
     le = LabelEncoder()
     le.fit(y_1819)
     print(le.classes_)
@@ -227,10 +228,10 @@ if __name__ == "__main__":
     y_1819 = le.transform(y_1819)
 
 
-    ## DegreeDays
-    y_DegreeD_path_18 = f'{datadir}/data/new/all_2018_y_accumulatedD.csv'
-    y_DegreeD_path_19 = f'{datadir}/data/new/all_2019_y_accumulatedD.csv'
-    y_DegreeD_path_20 = f'{datadir}/data/new/all_2020_y_accumulatedD.csv'
+    ## HUE
+    y_DegreeD_path_18 = f'{datadir}/data/new/all_2018_hue.csv'
+    y_DegreeD_path_19 = f'{datadir}/data/new/all_2019_hue.csv'
+    y_DegreeD_path_20 = f'{datadir}/data/new/all_2020_hue.csv'
 
 
     y_DegreeD_18 = pd.read_csv(y_DegreeD_path_18,header=0)
@@ -238,7 +239,14 @@ if __name__ == "__main__":
     y_DegreeD_20 = pd.read_csv(y_DegreeD_path_20,header=0)
     y_DegreeD_1819 = pd.concat([y_DegreeD_18,y_DegreeD_19,y_DegreeD_20])
 
+    columns_name = list(range(0,55))
+    y_DegreeD_1819.columns = columns_name
+
+
     y_DegreeD_1819 = y_DegreeD_1819[mask]
+
+
+
     ## Accumulated Rain
     y_Rain_path_18 = f'{datadir}/data/new/all_2018_y_accumulated_rain_final.csv'
     y_Rain_path_19 = f'{datadir}/data/new/all_2019_y_accumulated_rain_final.csv'
@@ -253,6 +261,20 @@ if __name__ == "__main__":
     y_Rain_1819 = y_Rain_1819[mask]
 
 
+
+    ########## remove error hue ################
+
+    # remove below 0
+    mask_hue = ((y_DegreeD_1819 <= 1)&(y_DegreeD_1819 >= -1)).all(axis=1)
+    X_1819 = X_1819[mask_hue]
+    y_1819 = y_1819[mask_hue]
+    y_DegreeD_1819 = y_DegreeD_1819[mask_hue]
+    y_Rain_1819 = y_Rain_1819[mask_hue]
+
+
+
+
+
     # split for evi, degreeday and rain, seperately
     EVI_train, EVI_test, y_train, y_test = train_test_split(
         X_1819, y_1819, test_size=0.3, random_state=SEED, stratify=y_1819)
@@ -263,14 +285,16 @@ if __name__ == "__main__":
     Rain_train, Rain_test, _, _ = train_test_split(
         y_Rain_1819, y_1819, test_size=0.3, random_state=SEED, stratify=y_1819)
 
-    # print('EVI_train:{}'.format(EVI_train.shape))
-    # print('EVI_test:{}'.format(EVI_test.shape))
-    # print('DD_train:{}'.format(DD_train.shape))
-    # print('DD_test:{}'.format(DD_test.shape))
-    # print('Rain_train:{}'.format(Rain_train.shape))
-    # print('Rain_test:{}'.format(Rain_test.shape))
-    # print('y_train:{}'.format(y_train.shape))
-    # print('y_test:{}'.format(y_test.shape))
+    print('EVI_train:{}'.format(EVI_train.shape))
+    print('EVI_test:{}'.format(EVI_test.shape))
+    print('DD_train:{}'.format(DD_train.shape))
+    print('DD_test:{}'.format(DD_test.shape))
+    print('Rain_train:{}'.format(Rain_train.shape))
+    print('Rain_test:{}'.format(Rain_test.shape))
+    print('y_train:{}'.format(y_train.shape))
+    print('y_test:{}'.format(y_test.shape))
+
+
 
     ############ normalization #################
 
@@ -279,10 +303,10 @@ if __name__ == "__main__":
     EVI_train = scaler_EVI.transform(EVI_train)
     EVI_test = scaler_EVI.transform(EVI_test)
 
-    scaler_DD = MinMaxScaler()
-    scaler_DD.fit(DD_train)
-    DD_train = scaler_DD.transform(DD_train)
-    DD_test = scaler_DD.transform(DD_test)
+    # scaler_DD = MinMaxScaler()
+    # scaler_DD.fit(DD_train)
+    # DD_train = scaler_DD.transform(DD_train)
+    # DD_test = scaler_DD.transform(DD_test)
     
     scaler_Rain = MinMaxScaler()
     scaler_Rain.fit(Rain_train)
@@ -290,21 +314,21 @@ if __name__ == "__main__":
     Rain_test = scaler_Rain.transform(Rain_test)  
 
 
-    # print('EVI_train:{}'.format(EVI_train.shape))
-    # print('EVI_test:{}'.format(EVI_test.shape))
-    # print('DD_train:{}'.format(DD_train.shape))
-    # print('DD_test:{}'.format(DD_test.shape))
-    # print('Rain_train:{}'.format(Rain_train.shape))
-    # print('Rain_test:{}'.format(Rain_test.shape))
-    # print('y_train:{}'.format(y_train.shape))
-    # print('y_test:{}'.format(y_test.shape))
+    print('EVI_train:{}'.format(EVI_train.shape))
+    print('EVI_test:{}'.format(EVI_test.shape))
+    print('DD_train:{}'.format(DD_train.shape))
+    print('DD_test:{}'.format(DD_test.shape))
+    print('Rain_train:{}'.format(Rain_train.shape))
+    print('Rain_test:{}'.format(Rain_test.shape))
+    print('y_train:{}'.format(y_train.shape))
+    print('y_test:{}'.format(y_test.shape))
+
+
 
     # # # balance data
     # # ros = RandomOverSampler(random_state=SEED)
     # # X_train_resampled, y_train_resampled = ros.fit_resample(X_train, y_train)
     # X_train_resampled, y_train_resampled = X_train, y_train
-
-
 
 
 
@@ -318,8 +342,8 @@ if __name__ == "__main__":
 
     #### DD ########
     DD_train_tensor = numpy_to_tensor(
-        DD_train, torch.FloatTensor)
-    DD_test_tensor = numpy_to_tensor(DD_test, torch.FloatTensor)
+        DD_train.to_numpy(), torch.FloatTensor)
+    DD_test_tensor = numpy_to_tensor(DD_test.to_numpy(), torch.FloatTensor)
 
 
     #### Rain ########
@@ -341,8 +365,8 @@ if __name__ == "__main__":
     # All_X_train = EVI_train_tensor
     # All_X_test = EVI_test_tensor
 
-    # All_X_train = torch.cat((EVI_train_tensor, Rain_train_tensor), 2)
-    # All_X_test = torch.cat((EVI_test_tensor, Rain_test_tensor), 2)
+    All_X_train = torch.cat((EVI_train_tensor, DD_train_tensor), 2)
+    All_X_test = torch.cat((EVI_test_tensor, DD_test_tensor), 2)
 
     # print('All_X_train:{}'.format(All_X_train.shape))
     # print('All_X_test:{}'.format(All_X_test.shape))
@@ -388,20 +412,19 @@ if __name__ == "__main__":
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, [30, 60])
 
 
-    # # model training
-    runner = SupervisedRunner()
-    runner.train(
-        model=model,
-        criterion=criterion,
-        optimizer=optimizer,
-        scheduler=scheduler,
-        verbose=True,
-        timeit=True,
-        loaders=loaders,
-        logdir=logdir,
-        num_epochs=EPOCHS,
-        load_best_on_end=True,
-        callbacks=[AccuracyCallback(num_classes=NUM_CLASSES, topk_args=[
-            1, 2]), EarlyStoppingCallback(metric='accuracy01', minimize=False, patience=10)]
-    )
-
+    # # # model training
+    # runner = SupervisedRunner()
+    # runner.train(
+    #     model=model,
+    #     criterion=criterion,
+    #     optimizer=optimizer,
+    #     scheduler=scheduler,
+    #     verbose=True,
+    #     timeit=True,
+    #     loaders=loaders,
+    #     logdir=logdir,
+    #     num_epochs=EPOCHS,
+    #     load_best_on_end=True,
+    #     callbacks=[AccuracyCallback(num_classes=NUM_CLASSES, topk_args=[
+    #         1, 2]), EarlyStoppingCallback(metric='accuracy01', minimize=False, patience=10)]
+    # )

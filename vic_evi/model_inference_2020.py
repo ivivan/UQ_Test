@@ -223,7 +223,7 @@ if __name__ == "__main__":
 
 
     ## DegreeDays
-    y_DegreeD_path_18 = f'{datadir}/data/all_2020_y_accumulatedD.csv'
+    y_DegreeD_path_18 = f'{datadir}/data/all_2020_y_accumulatedD_short.csv'
 
     y_DegreeD_18 = pd.read_csv(y_DegreeD_path_18,header=0)
 

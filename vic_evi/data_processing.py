@@ -102,6 +102,9 @@ if __name__ == "__main__":
 
     labels = vic2018.iloc[:,1].copy()
 
+
+    print(vic2018.head())
+
     # print(vic2018[vic2018.isnull().any(axis=1)])
 
     columns_name = list(range(0,55))
@@ -109,14 +112,14 @@ if __name__ == "__main__":
     X = df2
     y = labels
 
-    # X = X.iloc[0:3000,:]
+    print(X.shape)
 
-    X.to_csv(f"{logdir}/data/all_2020_x.csv", index=False)
+    # X.to_csv(f"{logdir}/data/all_2020_x.csv", index=False)
 
-    df_test_y = pd.DataFrame(y)
+    # df_test_y = pd.DataFrame(y)
 
-    df_test_y.to_csv(
-        f"{logdir}/data/all_2020_y.csv", index=False)
+    # df_test_y.to_csv(
+    #     f"{logdir}/data/all_2020_y.csv", index=False)
 
 
 

@@ -79,17 +79,18 @@ if __name__ == "__main__":
     # vic2018['field'] = vic2018['field_id'].str.split('_').str[0]
     # vic2018['crop'] = vic2018['field_id'].str.split('_').str[1]
 
+
+    ######### 2020 #########
+
+
+
     vic2018.replace('Chick Pea', 'Chickpea',inplace=True)
     vic2018.drop_duplicates(subset=['pixelID'],inplace=True)
     vic2018.dropna(inplace=True)
 
     picked_up = vic2018[['pixelID','field','crop']]
 
-    # print(vic2018[vic2018.isnull().any(axis=1)])
-
-    # columns_name = list(range(0,55))
-    # df2 = pd.DataFrame(vic2018['5d_EVI_gpr'].str.slice(1,-1).str.split(',').values.tolist(),columns=columns_name,dtype=float)
-    # X = df2
+    
 
 
     print(picked_up.head())

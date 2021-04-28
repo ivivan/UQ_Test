@@ -1,4 +1,4 @@
-from sklearn.metrics import classification_report,f1_score,cohen_kappa_score,accuracy_score,confusion_matrix
+from sklearn.metrics import classification_report, f1_score, cohen_kappa_score, accuracy_score, confusion_matrix
 from sklearn.preprocessing import LabelEncoder, StandardScaler, MinMaxScaler
 from sklearn.model_selection import train_test_split
 from catalyst.utils import set_global_seed
@@ -50,6 +50,7 @@ def data_together(filepath):
 
     return dfs, csvs
 
+
 def epoch_time(start_time, end_time):
     elapsed_time = end_time - start_time
     elapsed_mins = int(elapsed_time / 60)
@@ -57,6 +58,8 @@ def epoch_time(start_time, end_time):
     return elapsed_mins, elapsed_secs
 
 # determine the supported device
+
+
 def get_device():
     if torch.cuda.is_available():
         device = torch.device('cuda:0')
@@ -65,6 +68,8 @@ def get_device():
     return device
 
 # convert a df to tensor to be used in pytorch
+
+
 def numpy_to_tensor(ay, tp):
     device = get_device()
     return torch.from_numpy(ay).type(tp).to(device)
@@ -98,6 +103,8 @@ class CustomRunner(Runner):
             self.optimizer.zero_grad()
 
 # classification label smoothing
+
+
 class LabelSmoothingCrossEntropy(nn.Module):
     def __init__(self):
         super(LabelSmoothingCrossEntropy, self).__init__()
@@ -110,7 +117,6 @@ class LabelSmoothingCrossEntropy(nn.Module):
         smooth_loss = -logprobs.mean(dim=-1)
         loss = confidence * nll_loss + smoothing * smooth_loss
         return loss.mean()
-
 
 
 # self attention with lstm
@@ -163,7 +169,7 @@ class AttentionModel(torch.nn.Module):
 
         attn_ene = attn_ene.view(
             output.shape[0], -1)
-        
+
         # scale
         attn_ene.mul_(self.scale)
 
@@ -179,42 +185,42 @@ class AttentionModel(torch.nn.Module):
         return logits
 
 
-
 if __name__ == "__main__":
     # DataLoader definition
     # model hyperparameters
-    INPUT_DIM = 3
+    INPUT_DIM = 2
     OUTPUT_DIM = 5
     HID_DIM = 256
     DROPOUT = 0.2
     RECURRENT_Layers = 2
     LR = 0.004  # learning rate
-    EPOCHS = 1
+    EPOCHS = 400
     BATCH_SIZE = 128
     NUM_CLASSES = 5
     num_gpu = 1
-    datadir = "./vic_evi"  #local
+    datadir = "./vic_evi"  # local
     # datadir = "/afm02/Q2/Q2067/Data/DeepLearningTestData/VIC_EVI"  #hpc
     # logdir = "/afm02/Q2/Q2067/Data/DeepLearningTestData/HPC/Log/vic/1819" # hpc
-    logdir = "./vic_evi/" # local
+    logdir = "./vic_evi/"  # local
 
-    ### start time ####
-    start_time = time.time()
+    # EVI
+    x_path = f'{datadir}/data/new/all_2018_x.csv'
+    y_path = f'{datadir}/data/new/all_2018_y.csv'
+    x_2019_path = f'{datadir}/data/new/all_2019_x.csv'
+    y_2019_path = f'{datadir}/data/new/all_2019_y.csv'
+    x_2020_path = f'{datadir}/data/new/all_2020_x.csv'
+    y_2020_path = f'{datadir}/data/new/all_2020_y.csv'
 
-    ## EVI
-    x_path = f'{datadir}/data/all_2018_x.csv'
-    y_path = f'{datadir}/data/all_2018_y.csv'
-    x_2019_path = f'{datadir}/data/all_2019_x.csv'
-    y_2019_path = f'{datadir}/data/all_2019_y.csv'
+    X = pd.read_csv(x_path, header=0)
+    y = pd.read_csv(y_path, header=0)
+    X_2019 = pd.read_csv(x_2019_path, header=0)
+    y_2019 = pd.read_csv(y_2019_path, header=0)
+    X_2020 = pd.read_csv(x_2020_path, header=0)
+    y_2020 = pd.read_csv(y_2020_path, header=0)
 
-    X = pd.read_csv(x_path,header=0)
-    y = pd.read_csv(y_path,header=0)
-    X_2019 = pd.read_csv(x_2019_path,header=0)
-    y_2019 = pd.read_csv(y_2019_path,header=0)
-    X_1819 = pd.concat([X,X_2019])
-    y_1819 = pd.concat([y,y_2019])
+    X_1819 = pd.concat([X, X_2019, X_2020])
+    y_1819 = pd.concat([y, y_2019, y_2020])
 
- 
     # remove below 0
     mask = (X_1819 >= 0).all(axis=1)
     X_1819 = X_1819[mask]
@@ -226,28 +232,41 @@ if __name__ == "__main__":
     class_names = le.classes_
     y_1819 = le.transform(y_1819)
 
+    # HUE
+    y_DegreeD_path_18 = f'{datadir}/data/new/all_2018_hue.csv'
+    y_DegreeD_path_19 = f'{datadir}/data/new/all_2019_hue.csv'
+    y_DegreeD_path_20 = f'{datadir}/data/new/all_2020_hue.csv'
 
-    ## DegreeDays
-    y_DegreeD_path_18 = f'{datadir}/data/all_2018_y_accumulatedD_short.csv'
-    y_DegreeD_path_19 = f'{datadir}/data/all_2019_y_accumulatedD_short.csv'
+    y_DegreeD_18 = pd.read_csv(y_DegreeD_path_18, header=0)
+    y_DegreeD_19 = pd.read_csv(y_DegreeD_path_19, header=0)
+    y_DegreeD_20 = pd.read_csv(y_DegreeD_path_20, header=0)
+    y_DegreeD_1819 = pd.concat([y_DegreeD_18, y_DegreeD_19, y_DegreeD_20])
 
-
-    y_DegreeD_18 = pd.read_csv(y_DegreeD_path_18,header=0)
-    y_DegreeD_19 = pd.read_csv(y_DegreeD_path_19,header=0)
-    y_DegreeD_1819 = pd.concat([y_DegreeD_18,y_DegreeD_19])
+    columns_name = list(range(0, 55))
+    y_DegreeD_1819.columns = columns_name
 
     y_DegreeD_1819 = y_DegreeD_1819[mask]
-    ## Accumulated Rain
-    y_Rain_path_18 = f'{datadir}/data/all_2018_y_accumulated_rain_final.csv'
-    y_Rain_path_19 = f'{datadir}/data/all_2019_y_accumulated_rain_final.csv'
 
+    # Accumulated Rain
+    y_Rain_path_18 = f'{datadir}/data/new/all_2018_y_accumulated_rain_final.csv'
+    y_Rain_path_19 = f'{datadir}/data/new/all_2019_y_accumulated_rain_final.csv'
+    y_Rain_path_20 = f'{datadir}/data/new/all_2020_y_accumulated_rain_final.csv'
 
-    y_Rain_18 = pd.read_csv(y_Rain_path_18,header=0)
-    y_Rain_19 = pd.read_csv(y_Rain_path_19,header=0)
-    y_Rain_1819 = pd.concat([y_Rain_18,y_Rain_19])
+    y_Rain_18 = pd.read_csv(y_Rain_path_18, header=0)
+    y_Rain_19 = pd.read_csv(y_Rain_path_19, header=0)
+    y_Rain_20 = pd.read_csv(y_Rain_path_20, header=0)
+    y_Rain_1819 = pd.concat([y_Rain_18, y_Rain_19, y_Rain_20])
 
     y_Rain_1819 = y_Rain_1819[mask]
 
+    ########## remove error hue ################
+
+    # remove below 0
+    mask_hue = ((y_DegreeD_1819 <= 1) & (y_DegreeD_1819 >= -1)).all(axis=1)
+    X_1819 = X_1819[mask_hue]
+    y_1819 = y_1819[mask_hue]
+    y_DegreeD_1819 = y_DegreeD_1819[mask_hue]
+    y_Rain_1819 = y_Rain_1819[mask_hue]
 
     # split for evi, degreeday and rain, seperately
     EVI_train, EVI_test, y_train, y_test = train_test_split(
@@ -259,14 +278,14 @@ if __name__ == "__main__":
     Rain_train, Rain_test, _, _ = train_test_split(
         y_Rain_1819, y_1819, test_size=0.3, random_state=SEED, stratify=y_1819)
 
-    # print('EVI_train:{}'.format(EVI_train.shape))
-    # print('EVI_test:{}'.format(EVI_test.shape))
-    # print('DD_train:{}'.format(DD_train.shape))
-    # print('DD_test:{}'.format(DD_test.shape))
-    # print('Rain_train:{}'.format(Rain_train.shape))
-    # print('Rain_test:{}'.format(Rain_test.shape))
-    # print('y_train:{}'.format(y_train.shape))
-    # print('y_test:{}'.format(y_test.shape))
+    print('EVI_train:{}'.format(EVI_train.shape))
+    print('EVI_test:{}'.format(EVI_test.shape))
+    print('DD_train:{}'.format(DD_train.shape))
+    print('DD_test:{}'.format(DD_test.shape))
+    print('Rain_train:{}'.format(Rain_train.shape))
+    print('Rain_test:{}'.format(Rain_test.shape))
+    print('y_train:{}'.format(y_train.shape))
+    print('y_test:{}'.format(y_test.shape))
 
     ############ normalization #################
 
@@ -275,37 +294,29 @@ if __name__ == "__main__":
     EVI_train = scaler_EVI.transform(EVI_train)
     EVI_test = scaler_EVI.transform(EVI_test)
 
-    scaler_DD = MinMaxScaler()
-    scaler_DD.fit(DD_train)
-    DD_train = scaler_DD.transform(DD_train)
-    DD_test = scaler_DD.transform(DD_test)
-    
+    # scaler_DD = MinMaxScaler()
+    # scaler_DD.fit(DD_train)
+    # DD_train = scaler_DD.transform(DD_train)
+    # DD_test = scaler_DD.transform(DD_test)
+
     scaler_Rain = MinMaxScaler()
     scaler_Rain.fit(Rain_train)
     Rain_train = scaler_Rain.transform(Rain_train)
-    Rain_test = scaler_Rain.transform(Rain_test)  
+    Rain_test = scaler_Rain.transform(Rain_test)
 
-
-    # print('EVI_train:{}'.format(EVI_train.shape))
-    # print('EVI_test:{}'.format(EVI_test.shape))
-    # print('DD_train:{}'.format(DD_train.shape))
-    # print('DD_test:{}'.format(DD_test.shape))
-    # print('Rain_train:{}'.format(Rain_train.shape))
-    # print('Rain_test:{}'.format(Rain_test.shape))
-    # print('y_train:{}'.format(y_train.shape))
-    # print('y_test:{}'.format(y_test.shape))
+    print('EVI_train:{}'.format(EVI_train.shape))
+    print('EVI_test:{}'.format(EVI_test.shape))
+    print('DD_train:{}'.format(DD_train.shape))
+    print('DD_test:{}'.format(DD_test.shape))
+    print('Rain_train:{}'.format(Rain_train.shape))
+    print('Rain_test:{}'.format(Rain_test.shape))
+    print('y_train:{}'.format(y_train.shape))
+    print('y_test:{}'.format(y_test.shape))
 
     # # # balance data
     # # ros = RandomOverSampler(random_state=SEED)
     # # X_train_resampled, y_train_resampled = ros.fit_resample(X_train, y_train)
     # X_train_resampled, y_train_resampled = X_train, y_train
-
-
-    # # check sample no.
-    unique_elements, counts_elements = np.unique(y_test, return_counts=True)
-    print("Frequency of unique values of the said array:")
-    print(np.asarray((unique_elements, counts_elements)))
-
 
     # # prepare PyTorch Datasets
     #### EVI ########
@@ -317,15 +328,13 @@ if __name__ == "__main__":
 
     #### DD ########
     DD_train_tensor = numpy_to_tensor(
-        DD_train, torch.FloatTensor)
-    DD_test_tensor = numpy_to_tensor(DD_test, torch.FloatTensor)
-
+        DD_train.to_numpy(), torch.FloatTensor)
+    DD_test_tensor = numpy_to_tensor(DD_test.to_numpy(), torch.FloatTensor)
 
     #### Rain ########
     Rain_train_tensor = numpy_to_tensor(
         Rain_train, torch.FloatTensor)
     Rain_test_tensor = numpy_to_tensor(Rain_test, torch.FloatTensor)
-
 
     EVI_train_tensor = torch.unsqueeze(EVI_train_tensor, 2)
     EVI_test_tensor = torch.unsqueeze(EVI_test_tensor, 2)
@@ -334,37 +343,42 @@ if __name__ == "__main__":
     Rain_train_tensor = torch.unsqueeze(Rain_train_tensor, 2)
     Rain_test_tensor = torch.unsqueeze(Rain_test_tensor, 2)
 
-    All_X_train = torch.cat((EVI_train_tensor, DD_train_tensor, Rain_train_tensor), 2)
-    All_X_test = torch.cat((EVI_test_tensor, DD_test_tensor, Rain_test_tensor), 2)
+    # All_X_train = torch.cat(
+    #     (EVI_train_tensor, DD_train_tensor, Rain_train_tensor), 2)
+    # All_X_test = torch.cat(
+    #     (EVI_test_tensor, DD_test_tensor, Rain_test_tensor), 2)
 
     # All_X_train = EVI_train_tensor
     # All_X_test = EVI_test_tensor
 
-    # All_X_train = torch.cat((EVI_train_tensor, DD_train_tensor), 2)
-    # All_X_test = torch.cat((EVI_test_tensor, DD_test_tensor), 2)
+    All_X_train = torch.cat((EVI_train_tensor, DD_train_tensor), 2)
+    All_X_test = torch.cat((EVI_test_tensor, DD_test_tensor), 2)
+
+
+    # All_X_train = torch.cat((EVI_train_tensor, Rain_train_tensor), 2)
+    # All_X_test = torch.cat((EVI_test_tensor, Rain_test_tensor), 2)
 
     # print('All_X_train:{}'.format(All_X_train.shape))
     # print('All_X_test:{}'.format(All_X_test.shape))
-
 
     ########### Early Classification ###############
 
     ### 456, 18####
     ### 456789  37#####
 
-    All_X_train = All_X_train[:,0:37,:]
-    All_X_test = All_X_test[:,0:37,:]
+    All_X_train = All_X_train[:, :, :]
+    All_X_test = All_X_test[:, :, :]
 
-    print('All_X_train:{}'.format(All_X_train.shape))
-    print('All_X_test:{}'.format(All_X_test.shape))
+    # print('All_X_train:{}'.format(All_X_train.shape))
+    # print('All_X_test:{}'.format(All_X_test.shape))
 
     train_ds = TensorDataset(All_X_train, y_train_tensor)
     valid_ds = TensorDataset(All_X_test, y_test_tensor)
 
-    train_dl = DataLoader(train_ds, batch_size=BATCH_SIZE, drop_last=True, num_workers=0)
+    train_dl = DataLoader(train_ds, batch_size=BATCH_SIZE,
+                          drop_last=True, num_workers=0)
     valid_dl = DataLoader(valid_ds, batch_size=BATCH_SIZE,
                           shuffle=False, drop_last=True, num_workers=0)
-
 
     # Catalyst loader:
 
@@ -384,7 +398,6 @@ if __name__ == "__main__":
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=LR)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, [30, 60])
-
 
     # # model training
     runner = SupervisedRunner()
@@ -416,7 +429,7 @@ if __name__ == "__main__":
     predictions = np.vstack(list(map(
         lambda x: x["logits"].cpu().numpy(),
         runner.predict_loader(model=model,
-                              loader=test_dl, resume=f"{logdir}/model/short_456789.pth")
+                              loader=test_dl, resume=f"{logdir}/model/181920/2_evi_hue.pth")
     )))
 
     probabilities = []
@@ -449,17 +462,17 @@ if __name__ == "__main__":
     y_true = true_labels
     y_pred = pred_labels
     target_names = ['Barley', 'Canola', 'Chickpea', 'Lentils', 'Wheat']
-    print(classification_report(y_true, y_pred, target_names=target_names, digits=2))
+    print(classification_report(y_true, y_pred,
+                                target_names=target_names, digits=2))
     print(confusion_matrix(y_true, y_pred, labels=range(NUM_CLASSES)))
     print('Kappa', cohen_kappa_score(y_true, y_pred))
 
+    # #### end time #####
+    # end_time = time.time()
+    # epoch_mins, epoch_secs = epoch_time(start_time, end_time)
+    # print(f'Execution Time: {epoch_mins}m {epoch_secs}s')
 
-    #### end time #####
-    end_time = time.time()
-    epoch_mins, epoch_secs = epoch_time(start_time, end_time)
-    print(f'Execution Time: {epoch_mins}m {epoch_secs}s')
-
-    # ### save predictions as csv
+    ### save predictions as csv
     # results.to_csv(f"{logdir}/predictions/predictions.csv", index=False)
 
     # ### generate test xy for steamlit

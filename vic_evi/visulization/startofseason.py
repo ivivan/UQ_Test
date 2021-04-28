@@ -23,7 +23,9 @@ import argparse
 import time
 import numpy as np
 import pandas as pd
+import seaborn as sns
 import matplotlib.pyplot as plt
+sns.set_style("darkgrid")
 np.set_printoptions(threshold=np.inf)
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
@@ -66,7 +68,7 @@ if __name__ == "__main__":
     logdir = "./vic_evi/" # local
 
 
-    folder_path = f'{datadir}/Data/DeepLearningTestData/VIC_EVI/2020_curve_params/'
+    folder_path = f'{datadir}/Data/DeepLearningTestData/VIC_EVI/2018_curve_params/'
     alldata, allpaths = data_together(folder_path)
 
     all_date = pd.concat(alldata)
@@ -75,25 +77,25 @@ if __name__ == "__main__":
     all_date.dropna(inplace=True)
 
 
-    # ######## 2018 ###########
-    # all_date['crop'] = all_date['field_id'].str.slice(1,-1).str.split('_').str[1]
-    # all_date['field_id'] = all_date['field_id'].str.slice(2,-1).str.split('_').str[0]
+    ######## 2018 ###########
+    all_date['crop'] = all_date['field_id'].str.slice(1,-1).str.split('_').str[1]
+    all_date['field_id'] = all_date['field_id'].str.slice(2,-1).str.split('_').str[0]
 
     # ######## 2019 ###########
     # all_date['crop'] = all_date['field_id'].str.split('_').str[1]
     # all_date['field_id'] = all_date['field_id'].str.split('_').str[0]
 
 
-    ######## 2020 ###########
-    all_date['crop'] = all_date['field_id'].str.slice(1,-1).str.split('_').str[1]
-    all_date['field_id'] = all_date['field_id'].str.slice(2,-1).str.split('_').str[0]
+    # ######## 2020 ###########
+    # all_date['crop'] = all_date['field_id'].str.slice(1,-1).str.split('_').str[1]
+    # all_date['field_id'] = all_date['field_id'].str.slice(2,-1).str.split('_').str[0]
 
     # print(all_date.head())
 
 
     ############# use to choose big or small size field ###############
     results = all_date.groupby(['crop', 'field_id']).describe()['sos'].reset_index()
-    chosen_crop =results.loc[(results['crop']=='Barley') & (results['count'] < 200) ]
+    chosen_crop =results.loc[(results['crop']=='Wheat') & (results['count'] >= 200) ]
 
     print(chosen_crop)
     chosen_crop = chosen_crop[['crop','field_id']]
@@ -102,9 +104,14 @@ if __name__ == "__main__":
 
     chosen_data = all_date.loc[all_date['field_id'].isin(unique_field_id[0:15])]
 
-    green_diamond = dict(markerfacecolor='g', marker='D')
+    # green_diamond = dict(markerfacecolor='g', marker='D')
     
-    chosen_data.boxplot(column='sos', by='field_id',flierprops=green_diamond,fontsize=20)
+    # chosen_data.boxplot(column='sos', by='field_id',flierprops=green_diamond,fontsize=20)
+
+    fig, axes = plt.subplots()
+
+    sns.violinplot('field_id','sos', data=chosen_data, ax=axes)
+    axes.yaxis.grid(True)
 
     plt.show()
 
